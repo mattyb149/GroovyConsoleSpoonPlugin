@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/Kettle 4.4.0"/>
+	<classpathentry kind="lib" path="/Kettle 4.4.0/libswt/win64/swt.jar"/>
+	<classpathentry kind="lib" path="/Kettle 4.4.0/libext/pentaho/pentaho-xul-swt-3.3-SNAPSHOT.jar" sourcepath="/pentaho-xul-swt"/>
+	<classpathentry kind="lib" path="/Kettle 4.4.0/libext/pentaho/pentaho-xul-core-3.3.4.jar"/>
+	<classpathentry exported="true" kind="con" path="GROOVY_DSL_SUPPORT"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
