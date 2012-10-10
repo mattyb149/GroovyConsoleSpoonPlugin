@@ -19,6 +19,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.pentaho.di.cluster.SlaveConnectionManager;
+import org.pentaho.di.core.KettleVariablesList;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.gui.SpoonFactory;
 import org.pentaho.di.core.plugins.PluginRegistry;
@@ -122,6 +123,8 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 					binding.setProperty("pluginRegistry", PluginRegistry.getInstance());
 					binding.setProperty("kettleVFS", KettleVFS.getInstance());
 					binding.setProperty("slaveConnectionManager", SlaveConnectionManager.getInstance());
+					binding.setProperty("defaultVarMap", KettleVariablesList.getInstance().getDefaultValueMap());
+					binding.setProperty("defaultVarDescMap", KettleVariablesList.getInstance().getDescriptionMap());
 					binding.setVariable("methods", new MethodClosure(GroovyConsoleHelper.class,"methods"));
 					binding.setVariable("printMethods", new MethodClosure(GroovyConsoleHelper.class,"printMethods"));
 					binding.setVariable("props", new MethodClosure(GroovyConsoleHelper.class,"properties"));
