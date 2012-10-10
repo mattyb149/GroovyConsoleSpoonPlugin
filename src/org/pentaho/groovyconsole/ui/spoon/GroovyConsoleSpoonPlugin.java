@@ -9,8 +9,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
@@ -20,8 +24,13 @@ import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.pentaho.di.cluster.SlaveConnectionManager;
 import org.pentaho.di.core.KettleVariablesList;
+import org.pentaho.di.core.database.DatabaseInterface;
 import org.pentaho.di.core.database.DatabaseMeta;
+import org.pentaho.di.core.exception.KettlePluginException;
 import org.pentaho.di.core.gui.SpoonFactory;
+import org.pentaho.di.core.logging.LogChannel;
+import org.pentaho.di.core.plugins.DatabasePluginType;
+import org.pentaho.di.core.plugins.PluginInterface;
 import org.pentaho.di.core.plugins.PluginRegistry;
 import org.pentaho.di.core.vfs.KettleVFS;
 import org.pentaho.di.i18n.BaseMessages;
@@ -136,6 +145,7 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 					binding.setVariable("activeTransGraph",new MethodClosure(GroovyConsoleHelper.class,"transGraph"));
 					binding.setVariable("database",new MethodClosure(GroovyConsoleHelper.class,"database"));
 					binding.setVariable("step",new MethodClosure(GroovyConsoleHelper.class,"step"));
+					binding.setVariable("createdb",new MethodClosure(GroovyConsoleHelper.class,"createDatabase"));
 					GroovyShell groovyShell = new GroovyShell(this.getClass().getClassLoader(), binding, cc);
 					console.setShell(groovyShell);
 					console.setVariable("gshell",groovyShell);
@@ -176,6 +186,35 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
     }
     
     public static class GroovyConsoleHelper {
+    	
+    	public static final SortedMap<String, DatabaseInterface> connectionMap = new TreeMap<String, DatabaseInterface>();
+    	public static final Map<String, String> connectionNametoID = new HashMap<String, String>();
+
+    	  // The connectionMap allows us to keep track of the connection
+    	  // type we are working with and the correlating database interface
+
+    	  static {
+    	    PluginRegistry registry = PluginRegistry.getInstance();
+    	    
+    	    List<PluginInterface> plugins = registry.getPlugins(DatabasePluginType.class);
+    	    for (PluginInterface plugin : plugins) {
+    	      try {
+    	        DatabaseInterface databaseInterface = (DatabaseInterface)registry.loadClass(plugin);
+    	        databaseInterface.setPluginId(plugin.getIds()[0]);
+    	        databaseInterface.setName(plugin.getName());
+    	        connectionMap.put(plugin.getName(), databaseInterface);
+    	        connectionNametoID.put(plugin.getName(), plugin.getIds()[0]);
+    	      } 
+    	      catch (KettlePluginException cnfe) {
+    	         System.out.println("Could not create connection entry for "+plugin.getName()+".  "+cnfe.getCause().getClass().getName());
+    	         LogChannel.GENERAL.logError("Could not create connection entry for "+plugin.getName()+".  "+cnfe.getCause().getClass().getName()); 
+    	       }
+    	      catch (Exception e) {
+    	        throw new RuntimeException("Error creating class for: "+plugin, e);
+    	      }
+    	    }
+    	    
+    	  }
     	
     	public static List<Method> methods(Object o) {
     		return Arrays.asList(o.getClass().getDeclaredMethods());
@@ -218,6 +257,27 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
     	public static StepMeta step(String stepName) {
     		
     		return Spoon.getInstance().getActiveTransformation().findStep(stepName);
+    	}
+    	
+    	public static DatabaseMeta createDatabase(Map<String,String> args) {
+    	    String name = args.get("name");
+    	    String dbType = args.get("dbType");
+    	    String dbName = args.get("dbName");
+    	    String host = args.get("host");
+    	    String port = args.get("port");
+    	    String user = args.get("user");
+    	    String password = args.get("password");
+    		DatabaseMeta meta = new DatabaseMeta();
+    		DatabaseInterface dbInterface = connectionMap.get(dbType);
+    		meta.setDatabaseInterface(dbInterface);
+    		meta.setDBName(dbName);
+    		meta.setHostname(host);
+    		meta.setDBPort(port);
+    		meta.setUsername(user);
+    		meta.setPassword(password);
+    		meta.setName(name);
+    		
+    		return meta;
     	}
     }
 	
