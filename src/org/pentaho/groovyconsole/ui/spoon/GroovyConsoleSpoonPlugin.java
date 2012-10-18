@@ -8,6 +8,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +35,8 @@ import org.pentaho.di.core.plugins.PluginInterface;
 import org.pentaho.di.core.plugins.PluginRegistry;
 import org.pentaho.di.core.vfs.KettleVFS;
 import org.pentaho.di.i18n.BaseMessages;
+import org.pentaho.di.job.JobMeta;
+import org.pentaho.di.job.entry.JobEntryCopy;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
@@ -45,6 +48,7 @@ import org.pentaho.di.ui.spoon.SpoonPerspectiveManager;
 import org.pentaho.di.ui.spoon.SpoonPlugin;
 import org.pentaho.di.ui.spoon.SpoonPluginCategories;
 import org.pentaho.di.ui.spoon.SpoonPluginInterface;
+import org.pentaho.di.ui.spoon.job.JobGraph;
 import org.pentaho.di.ui.spoon.trans.TransGraph;
 import org.pentaho.ui.xul.XulDomContainer;
 import org.pentaho.ui.xul.XulException;
@@ -143,9 +147,16 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 					binding.setProperty("transGraph", spoon.getActiveTransGraph());
 					binding.setVariable("activeTrans",new MethodClosure(GroovyConsoleHelper.class,"trans"));
 					binding.setVariable("activeTransGraph",new MethodClosure(GroovyConsoleHelper.class,"transGraph"));
+					binding.setProperty("job", spoon.getActiveJob());
+					binding.setProperty("jobGraph", spoon.getActiveJobGraph());
+					binding.setVariable("activeJob",new MethodClosure(GroovyConsoleHelper.class,"job"));
+					binding.setVariable("activeJobGraph",new MethodClosure(GroovyConsoleHelper.class,"jobGraph"));
 					binding.setVariable("database",new MethodClosure(GroovyConsoleHelper.class,"database"));
 					binding.setVariable("step",new MethodClosure(GroovyConsoleHelper.class,"step"));
+					binding.setVariable("entry",new MethodClosure(GroovyConsoleHelper.class,"entry"));
 					binding.setVariable("createdb",new MethodClosure(GroovyConsoleHelper.class,"createDatabase"));
+					binding.setVariable("runTrans",new MethodClosure(GroovyConsoleHelper.class,"runTrans"));
+					binding.setVariable("runJob",new MethodClosure(GroovyConsoleHelper.class,"runJob"));
 					GroovyShell groovyShell = new GroovyShell(this.getClass().getClassLoader(), binding, cc);
 					console.setShell(groovyShell);
 					console.setVariable("gshell",groovyShell);
@@ -244,6 +255,14 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
     		return Spoon.getInstance().getActiveTransGraph();
     	}
     	
+    	public static JobMeta job() {
+    		return Spoon.getInstance().getActiveJob();
+    	}
+    	
+    	public static JobGraph jobGraph() {
+    		return Spoon.getInstance().getActiveJobGraph();
+    	}
+    	
     	public static DatabaseMeta database(String dbName) {
     		
     		for(DatabaseMeta dbm : Spoon.getInstance().getActiveDatabases()) {
@@ -255,8 +274,11 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
     	}
     	
     	public static StepMeta step(String stepName) {
-    		
     		return Spoon.getInstance().getActiveTransformation().findStep(stepName);
+    	}
+    	
+    	public static JobEntryCopy entry(String entryName) {
+    		return Spoon.getInstance().getActiveJob().findJobEntry(entryName);
     	}
     	
     	public static DatabaseMeta createDatabase(Map<String,String> args) {
@@ -278,6 +300,36 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
     		meta.setName(name);
     		
     		return meta;
+    	}
+    	
+    	public static void runTrans(TransMeta transMeta) {
+    		Spoon spoon = Spoon.getInstance();
+    		TransMeta tm = transMeta;
+    		if(tm == null) tm = spoon.getActiveTransformation();
+    		if(tm != null) {
+    			spoon.executeTransformation(tm, true, false, false, false, false, new Date(), false);
+    			TransGraph tg = spoon.getActiveTransGraph();
+    			try {
+	    			// Wait for trans to start
+	    			while(!tg.isRunning()) {
+	    		        Thread.sleep(10);
+	    		    }
+	    			// Wait for trans to end
+	    		    while(tg.isRunning()) {
+	    		        Thread.sleep(100);
+	    		    }
+    			}
+    			catch(InterruptedException ie) {}
+    		}
+    	}
+    	
+    	public static void runJob(JobMeta jobMeta) {
+    		Spoon spoon = Spoon.getInstance();
+    		JobMeta jm = jobMeta;
+    		if(jm == null) jm = spoon.getActiveJob();
+    		if(jm != null) {
+    			spoon.executeJob(jm, true, false, new Date(), false, null, 0);
+    		}
     	}
     }
 	
