@@ -14,12 +14,4 @@ abstract class GroovyConsoleBaseScript extends Script {
 		super(binding)
 	}
 	
-	
-	/*def methodMissing(String name, args) {
-		println "redirect method: $name"
-	}
-	
-	def propertyMissing(String name) { 
-		println "redirect property: $name"
-	}*/
 }

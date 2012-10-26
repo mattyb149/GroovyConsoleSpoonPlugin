@@ -4,11 +4,11 @@ import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.ui.Console;
 
-import java.lang.reflect.Field;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FilenameFilter;
+import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -19,26 +19,17 @@ import java.util.TreeMap;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
-import org.codehaus.groovy.runtime.MethodClosure;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
-import org.pentaho.di.cluster.SlaveConnectionManager;
-import org.pentaho.di.core.KettleVariablesList;
 import org.pentaho.di.core.database.DatabaseInterface;
-import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettlePluginException;
 import org.pentaho.di.core.gui.SpoonFactory;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.plugins.DatabasePluginType;
 import org.pentaho.di.core.plugins.PluginInterface;
 import org.pentaho.di.core.plugins.PluginRegistry;
-import org.pentaho.di.core.vfs.KettleVFS;
 import org.pentaho.di.i18n.BaseMessages;
-import org.pentaho.di.job.JobMeta;
-import org.pentaho.di.job.entry.JobEntryCopy;
-import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.spoon.ISpoonMenuController;
 import org.pentaho.di.ui.spoon.Spoon;
@@ -48,8 +39,6 @@ import org.pentaho.di.ui.spoon.SpoonPerspectiveManager;
 import org.pentaho.di.ui.spoon.SpoonPlugin;
 import org.pentaho.di.ui.spoon.SpoonPluginCategories;
 import org.pentaho.di.ui.spoon.SpoonPluginInterface;
-import org.pentaho.di.ui.spoon.job.JobGraph;
-import org.pentaho.di.ui.spoon.trans.TransGraph;
 import org.pentaho.ui.xul.XulDomContainer;
 import org.pentaho.ui.xul.XulException;
 import org.pentaho.ui.xul.dom.Document;
@@ -59,6 +48,35 @@ import org.pentaho.ui.xul.impl.AbstractXulEventHandler;
 @SpoonPluginCategories({"spoon"})
 public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements ISpoonMenuController, SpoonPluginInterface, SpoonLifecycleListener {
 
+	public static final SortedMap<String, DatabaseInterface> connectionMap = new TreeMap<String, DatabaseInterface>();
+	public static final Map<String, String> connectionNametoID = new HashMap<String, String>();
+
+	  // The connectionMap allows us to keep track of the connection
+	  // type we are working with and the correlating database interface
+
+	  static {
+	    PluginRegistry registry = PluginRegistry.getInstance();
+	    
+	    List<PluginInterface> plugins = registry.getPlugins(DatabasePluginType.class);
+	    for (PluginInterface plugin : plugins) {
+	      try {
+	        DatabaseInterface databaseInterface = (DatabaseInterface)registry.loadClass(plugin);
+	        databaseInterface.setPluginId(plugin.getIds()[0]);
+	        databaseInterface.setName(plugin.getName());
+	        connectionMap.put(plugin.getName(), databaseInterface);
+	        connectionNametoID.put(plugin.getName(), plugin.getIds()[0]);
+	      } 
+	      catch (KettlePluginException cnfe) {
+	         System.out.println("Could not create connection entry for "+plugin.getName()+".  "+cnfe.getCause().getClass().getName());
+	         LogChannel.GENERAL.logError("Could not create connection entry for "+plugin.getName()+".  "+cnfe.getCause().getClass().getName()); 
+	       }
+	      catch (Exception e) {
+	        throw new RuntimeException("Error creating class for: "+plugin, e);
+	      }
+	    }
+	    
+	  }
+	  
 	ResourceBundle bundle = new ResourceBundle() {
 	    @Override
 	    public Enumeration<String> getKeys() {
@@ -119,47 +137,55 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 				try
 				{
 					Console console = new Console();
+					console.setVisualizeScriptResults(true);
+					
+					// Set default imports
 					ImportCustomizer ic = new ImportCustomizer();
 					ic.addStarImports(
+						"org.pentaho.di.repository",
 						"org.pentaho.di.trans",
+						"org.pentaho.di.job",
+						"org.pentaho.di.ui.spoon",
 						"org.pentaho.di.ui.spoon.delegates",
+						"org.pentaho.di.ui.spoon.trans",
 						"org.pentaho.di.trans.step",
+						"org.pentaho.di.cluster",
+						"org.pentaho.di.core",
+						"org.pentaho.di.core.database",
+						"org.pentaho.di.core.plugins",
 			            "org.pentaho.di.core.row",
-			            "org.pentaho.di.core",
-			            "org.pentaho.di.core.exception"
+			            "org.pentaho.di.core.vfs",
+			            "org.pentaho.di.core.exception",
+			            "org.pentaho.groovyconsole.ui.spoon",
+			            "org.pentaho.groovyconsole.ui.spoon.repo"
 					);
 					CompilerConfiguration cc = new CompilerConfiguration();
 					cc.addCompilationCustomizers(ic);
 					cc.setScriptBaseClass(GroovyConsoleBaseScript.class.getName());
-					Binding binding = new Binding();
-					binding.setProperty("spoon", spoon);
-					binding.setProperty("pluginRegistry", PluginRegistry.getInstance());
-					binding.setProperty("kettleVFS", KettleVFS.getInstance());
-					binding.setProperty("slaveConnectionManager", SlaveConnectionManager.getInstance());
-					binding.setProperty("defaultVarMap", KettleVariablesList.getInstance().getDefaultValueMap());
-					binding.setProperty("defaultVarDescMap", KettleVariablesList.getInstance().getDescriptionMap());
-					binding.setVariable("methods", new MethodClosure(GroovyConsoleHelper.class,"methods"));
-					binding.setVariable("printMethods", new MethodClosure(GroovyConsoleHelper.class,"printMethods"));
-					binding.setVariable("props", new MethodClosure(GroovyConsoleHelper.class,"properties"));
-					binding.setVariable("properties", new MethodClosure(GroovyConsoleHelper.class,"properties"));
-					binding.setVariable("printProperties", new MethodClosure(GroovyConsoleHelper.class,"printProperties"));
-					binding.setProperty("trans", spoon.getActiveTransformation());
-					binding.setProperty("transGraph", spoon.getActiveTransGraph());
-					binding.setVariable("activeTrans",new MethodClosure(GroovyConsoleHelper.class,"trans"));
-					binding.setVariable("activeTransGraph",new MethodClosure(GroovyConsoleHelper.class,"transGraph"));
-					binding.setProperty("job", spoon.getActiveJob());
-					binding.setProperty("jobGraph", spoon.getActiveJobGraph());
-					binding.setVariable("activeJob",new MethodClosure(GroovyConsoleHelper.class,"job"));
-					binding.setVariable("activeJobGraph",new MethodClosure(GroovyConsoleHelper.class,"jobGraph"));
-					binding.setVariable("database",new MethodClosure(GroovyConsoleHelper.class,"database"));
-					binding.setVariable("step",new MethodClosure(GroovyConsoleHelper.class,"step"));
-					binding.setVariable("entry",new MethodClosure(GroovyConsoleHelper.class,"entry"));
-					binding.setVariable("createdb",new MethodClosure(GroovyConsoleHelper.class,"createDatabase"));
-					binding.setVariable("runTrans",new MethodClosure(GroovyConsoleHelper.class,"runTrans"));
-					binding.setVariable("runJob",new MethodClosure(GroovyConsoleHelper.class,"runJob"));
-					GroovyShell groovyShell = new GroovyShell(this.getClass().getClassLoader(), binding, cc);
+					
+					// Get original shell context (for display transforms, etc.)
+					Binding binding = console.getShell().getContext();
+										
+					// Create a shell in which to run script(s) that create the desired Binding context
+					GroovyShell primingShell = new GroovyShell(this.getClass().getClassLoader(), binding, cc);
+					primingShell.evaluate(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("staging.groovy")));
+					
+					// Load any staging scripts placed in the directory with the plugin
+					File pluginFolder = new File(this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile();
+					for(String script : pluginFolder.list(new GroovyExtFilter())) {
+						try {
+							primingShell.evaluate(new FileReader(pluginFolder.getAbsolutePath() + File.separator + script));
+						}
+						catch(Exception cfe) {
+							System.out.println("Error loading script: "+script);
+						}
+					}
+					
+					// Create a new shell using the staged context, then create a console from the shell (also include a var for the shell)
+					GroovyShell groovyShell = new GroovyShell(this.getClass().getClassLoader(), primingShell.getContext(), cc);
 					console.setShell(groovyShell);
 					console.setVariable("gshell",groovyShell);
+					console.setVariable("thisConsole",console);
 				    console.run();
 				}
 				catch(Exception e)
@@ -175,162 +201,29 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 
 			pmd.run(true, true, op);
 		}
-		catch (InvocationTargetException e)
+		catch (Exception e)
 		{
 		    showErrorDialog(e, "Error with Progress Monitor Dialog", "Error with Progress Monitor Dialog");
-		}
-		catch (InterruptedException e)
-		{
-		    showErrorDialog(e, "Error with Progress Monitor Dialog", "Error with Progress Monitor Dialog");
-		}
-		
+		}		
 	}
 	
 	/**
-     * Showing an error dialog
+     * Show an error dialog
      * 
-     * @param e
+     * @param e The exception to display
+     * @param title The dialog title
+     * @param message The message to display
     */
     private void showErrorDialog(Exception e, String title, String message)
     {
         new ErrorDialog(Spoon.getInstance().getShell(), title, message, e);
     }
     
-    public static class GroovyConsoleHelper {
-    	
-    	public static final SortedMap<String, DatabaseInterface> connectionMap = new TreeMap<String, DatabaseInterface>();
-    	public static final Map<String, String> connectionNametoID = new HashMap<String, String>();
-
-    	  // The connectionMap allows us to keep track of the connection
-    	  // type we are working with and the correlating database interface
-
-    	  static {
-    	    PluginRegistry registry = PluginRegistry.getInstance();
-    	    
-    	    List<PluginInterface> plugins = registry.getPlugins(DatabasePluginType.class);
-    	    for (PluginInterface plugin : plugins) {
-    	      try {
-    	        DatabaseInterface databaseInterface = (DatabaseInterface)registry.loadClass(plugin);
-    	        databaseInterface.setPluginId(plugin.getIds()[0]);
-    	        databaseInterface.setName(plugin.getName());
-    	        connectionMap.put(plugin.getName(), databaseInterface);
-    	        connectionNametoID.put(plugin.getName(), plugin.getIds()[0]);
-    	      } 
-    	      catch (KettlePluginException cnfe) {
-    	         System.out.println("Could not create connection entry for "+plugin.getName()+".  "+cnfe.getCause().getClass().getName());
-    	         LogChannel.GENERAL.logError("Could not create connection entry for "+plugin.getName()+".  "+cnfe.getCause().getClass().getName()); 
-    	       }
-    	      catch (Exception e) {
-    	        throw new RuntimeException("Error creating class for: "+plugin, e);
-    	      }
-    	    }
-    	    
-    	  }
-    	
-    	public static List<Method> methods(Object o) {
-    		return Arrays.asList(o.getClass().getDeclaredMethods());
-    	}
-    	
-    	public static List<Field> properties(Object o) {
-    		return Arrays.asList(o.getClass().getDeclaredFields());
-    	}
-    	
-    	public static void printMethods(Object o) {
-    		for(Method m : o.getClass().getDeclaredMethods()) {
-    			System.out.println(m);
-    		}
-    	}
-    	
-    	public static void printProperties(Object o) {
-    		for(Field f : o.getClass().getDeclaredFields()) {
-    			System.out.println(f);
-    		}
-    	}
-    	
-    	public static TransMeta trans() {
-    		return Spoon.getInstance().getActiveTransformation();
-    	}
-    	
-    	public static TransGraph transGraph() {
-    		return Spoon.getInstance().getActiveTransGraph();
-    	}
-    	
-    	public static JobMeta job() {
-    		return Spoon.getInstance().getActiveJob();
-    	}
-    	
-    	public static JobGraph jobGraph() {
-    		return Spoon.getInstance().getActiveJobGraph();
-    	}
-    	
-    	public static DatabaseMeta database(String dbName) {
-    		
-    		for(DatabaseMeta dbm : Spoon.getInstance().getActiveDatabases()) {
-    			if(dbm.getName().equalsIgnoreCase(dbName)) {
-    				return dbm;
-    			}
-    		}
-    		return null;
-    	}
-    	
-    	public static StepMeta step(String stepName) {
-    		return Spoon.getInstance().getActiveTransformation().findStep(stepName);
-    	}
-    	
-    	public static JobEntryCopy entry(String entryName) {
-    		return Spoon.getInstance().getActiveJob().findJobEntry(entryName);
-    	}
-    	
-    	public static DatabaseMeta createDatabase(Map<String,String> args) {
-    	    String name = args.get("name");
-    	    String dbType = args.get("dbType");
-    	    String dbName = args.get("dbName");
-    	    String host = args.get("host");
-    	    String port = args.get("port");
-    	    String user = args.get("user");
-    	    String password = args.get("password");
-    		DatabaseMeta meta = new DatabaseMeta();
-    		DatabaseInterface dbInterface = connectionMap.get(dbType);
-    		meta.setDatabaseInterface(dbInterface);
-    		meta.setDBName(dbName);
-    		meta.setHostname(host);
-    		meta.setDBPort(port);
-    		meta.setUsername(user);
-    		meta.setPassword(password);
-    		meta.setName(name);
-    		
-    		return meta;
-    	}
-    	
-    	public static void runTrans(TransMeta transMeta) {
-    		Spoon spoon = Spoon.getInstance();
-    		TransMeta tm = transMeta;
-    		if(tm == null) tm = spoon.getActiveTransformation();
-    		if(tm != null) {
-    			spoon.executeTransformation(tm, true, false, false, false, false, new Date(), false);
-    			TransGraph tg = spoon.getActiveTransGraph();
-    			try {
-	    			// Wait for trans to start
-	    			while(!tg.isRunning()) {
-	    		        Thread.sleep(10);
-	    		    }
-	    			// Wait for trans to end
-	    		    while(tg.isRunning()) {
-	    		        Thread.sleep(100);
-	    		    }
-    			}
-    			catch(InterruptedException ie) {}
-    		}
-    	}
-    	
-    	public static void runJob(JobMeta jobMeta) {
-    		Spoon spoon = Spoon.getInstance();
-    		JobMeta jm = jobMeta;
-    		if(jm == null) jm = spoon.getActiveJob();
-    		if(jm != null) {
-    			spoon.executeJob(jm, true, false, new Date(), false, null, 0);
-    		}
-    	}
-    }
-	
+    // Groovy file extension filter
+	public static class GroovyExtFilter implements FilenameFilter {
+ 
+		public boolean accept(File dir, String name) {
+			return (name.endsWith(".groovy"));
+		}
+	}
 }
