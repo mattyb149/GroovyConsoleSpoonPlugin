@@ -1,3 +1,7 @@
+import org.pentaho.di.core.plugins.*
+import org.pentaho.di.trans.*
+import org.pentaho.di.trans.step.*
+
 // Groovyize PDI classes, add helper methods, etc.
 
 GroovyConsoleBaseScript.metaClass.propertyMissing = { name ->
@@ -223,5 +227,59 @@ makePublic = {obj, name ->
 	// try methods first, then fields
 	obj.class.declaredMethods.find {it.name.equals(name)}.each { it.accessible = true }
 	obj.class.declaredFields.find {it.name.equals(name)}.each { it.accessible = true }
+}
+
+// Operator overloading
+TransMeta.metaClass.plus = {x ->
+	if(x instanceof StepMeta) {
+		x.draw = true
+		x.location= new org.pentaho.di.core.gui.Point(20,20)
+		delegate.addStep(x)
+		def tg = activeTransGraph()
+		if(tg.managedObject == delegate) {
+			async { 
+				spoon.refreshTree()
+				tg.redraw()
+			}
+		}
+		delegate
+	}
+	else if(x instanceof Plugin) {
+		def newstep = x.makeNew()
+		if(newstep instanceof StepMeta) {
+			delegate + newstep
+		}
+	}
+	else if(x instanceof String) {
+		// Try to resolve step plugin
+		if(plugins[x] && plugins[x] instanceof StepPluginType) {
+			delegate + x
+		}
+	}
+	delegate
+}
+
+StepMeta.metaClass.rightShift = { x ->
+	if(x instanceof StepMeta) {
+		activeTrans().addTransHop(new TransHopMeta(delegate, x))
+		async {
+			spoon.refreshTree()
+			activeTransGraph().redraw()
+		}
+	}
+	// return right op so hops can be chained
+	x
+}
+
+StepMeta.metaClass.leftShift = { x ->
+	if(x instanceof StepMeta) {
+		activeTrans().addTransHop(new TransHopMeta(x, delegate))
+		async {
+			spoon.refreshTree()
+			activeTransGraph().redraw()
+		}
+	}
+	// return right op so hops can be chained
+	x
 }
 
