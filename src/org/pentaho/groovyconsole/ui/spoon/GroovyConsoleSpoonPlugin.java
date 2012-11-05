@@ -18,7 +18,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
-import org.codehaus.groovy.control.customizers.ImportCustomizer;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
@@ -139,28 +138,7 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 					Console console = new Console();
 					console.setVisualizeScriptResults(true);
 					
-					// Set default imports
-					ImportCustomizer ic = new ImportCustomizer();
-					ic.addStarImports(
-						"org.pentaho.di.repository",
-						"org.pentaho.di.trans",
-						"org.pentaho.di.job",
-						"org.pentaho.di.ui.spoon",
-						"org.pentaho.di.ui.spoon.delegates",
-						"org.pentaho.di.ui.spoon.trans",
-						"org.pentaho.di.trans.step",
-						"org.pentaho.di.cluster",
-						"org.pentaho.di.core",
-						"org.pentaho.di.core.database",
-						"org.pentaho.di.core.plugins",
-			            "org.pentaho.di.core.row",
-			            "org.pentaho.di.core.vfs",
-			            "org.pentaho.di.core.exception",
-			            "org.pentaho.groovyconsole.ui.spoon",
-			            "org.pentaho.groovyconsole.ui.spoon.repo"
-					);
 					CompilerConfiguration cc = new CompilerConfiguration();
-					cc.addCompilationCustomizers(ic);
 					cc.setScriptBaseClass(GroovyConsoleBaseScript.class.getName());
 					
 					// Get original shell context (for display transforms, etc.)

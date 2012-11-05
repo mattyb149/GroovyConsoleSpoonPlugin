@@ -2,7 +2,7 @@ package org.pentaho.groovyconsole.ui.spoon
 
 import groovy.lang.Binding
 import groovy.lang.Script
-import org.pentaho.di.trans.TransMeta
+import org.pentaho.vfs.ui.*
 
 abstract class GroovyConsoleBaseScript extends Script {
 

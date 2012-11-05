@@ -1,6 +1,20 @@
+import org.pentaho.di.core.database.*
 import org.pentaho.di.core.plugins.*
 import org.pentaho.di.trans.*
 import org.pentaho.di.trans.step.*
+import org.pentaho.di.repository.*
+import org.pentaho.di.job.*
+import org.pentaho.di.ui.spoon.*
+import org.pentaho.di.ui.spoon.delegates.*
+import org.pentaho.di.ui.spoon.trans.*
+import org.pentaho.di.cluster.*
+import org.pentaho.di.core.*
+import org.pentaho.di.core.row.*
+import org.pentaho.di.core.vfs.*
+import org.pentaho.vfs.ui.*
+import org.pentaho.di.core.exception.*
+import org.pentaho.groovyconsole.ui.spoon.*
+import org.pentaho.groovyconsole.ui.spoon.repo.*
 
 // Groovyize PDI classes, add helper methods, etc.
 
@@ -50,7 +64,15 @@ GroovyConsoleBaseScript.metaClass.runTrans = { transMeta ->
 
 	tm = transMeta ?: spoon.activeTransformation
 	if(tm != null) {
-		spoon.executeTransformation(tm, true, false, false, false, false, new Date(), false)
+		// Compatibility with 4.4.0 (no LogLevel param)
+		if(spoon.metaClass.respondsTo(spoon.instance, 'executeTransformation',
+			TransMeta, Boolean, Boolean, Boolean, Boolean, Boolean, Date, Boolean, LogLevel)) {
+			spoon.executeTransformation(tm, true, false, false, false, false, new Date(), false, spoon.log.logLevel)
+		}
+		else if(spoon.metaClass.respondsTo(spoon.instance, 'executeTransformation',
+			TransMeta, Boolean, Boolean, Boolean, Boolean, Boolean, Date, Boolean)) {
+			spoon.executeTransformation(tm, true, false, false, false, false, new Date(), false)
+		}
 		tg = spoon.activeTransGraph
 		try {
 			// Wait for trans to start
@@ -255,6 +277,10 @@ TransMeta.metaClass.plus = {x ->
 		if(plugins[x] && plugins[x] instanceof StepPluginType) {
 			delegate + x
 		}
+	}
+	else if(x instanceof DatabaseMeta) {
+		delegate.addDatabase(x)
+		delegate
 	}
 	delegate
 }
