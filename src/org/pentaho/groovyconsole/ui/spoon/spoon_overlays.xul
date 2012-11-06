@@ -7,6 +7,6 @@
     
     <menupopup id="tools-popup">
       <menuseparator id="tools-separator-9999"/>
-      <menuitem id="groovy-console" label="Groovy Console" command="groovyConsolePlugin.showGroovyConsole()" />
+      <menuitem id="groovy-console" label="Groovy Console" command="groovyConsolePlugin.showGroovyConsole()" image="plugins/spoon/groovy-console/groovy16.png" />
     </menupopup>
 </overlay>
