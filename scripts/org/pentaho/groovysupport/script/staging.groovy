@@ -105,14 +105,38 @@ TransMeta.metaClass.run = { args ->
 }
 
 
-// Database methods
+// Database methods and properties
+
+// The connectionMap allows us to keep track of the connection
+// type we are working with and the correlating database interface
+connectionMap = new TreeMap<String, DatabaseInterface>()
+connectionNametoID = new HashMap<String, String>()
+PluginRegistry.instance.getPlugins(DatabasePluginType.class).each { plugin ->
+   try {
+	 DatabaseInterface databaseInterface = (DatabaseInterface)PluginRegistry.instance.loadClass(plugin)
+	 def _pluginName = plugin.name
+	 databaseInterface.pluginId = plugin.ids[0]
+	 databaseInterface.name = _pluginName
+	 connectionMap.put(_pluginName, databaseInterface)
+	 connectionNametoID.put(_pluginName, plugin.ids[0])
+   }
+   catch (KettlePluginException cnfe) {
+	  println("Could not create connection entry for $_pluginName: ${cnfe.cause.class.name}")
+	  LogChannel.GENERAL.logError("Could not create connection entry for $_pluginName: ${cnfe.cause.class.name}")
+   }
+   catch (Exception e) {
+	  throw new RuntimeException("Error creating class for: $plugin", e);
+   }
+}
+   
+
 GroovyConsoleBaseScript.metaClass.database = { dbName -> spoon?.activeDatabases?.find {it.name?.equalsIgnoreCase(dbName)} }
 GroovyConsoleBaseScript.metaClass.db = {database(it)}
 GroovyConsoleBaseScript.metaClass.databases = {spoon?.activeDatabases}
 GroovyConsoleBaseScript.metaClass.dbs = {databases()}
 GroovyConsoleBaseScript.metaClass.createDatabase = {args ->
 	meta = new DatabaseMeta()
-	dbInterface = org.pentaho.groovyconsole.ui.spoon.GroovyConsoleSpoonPlugin.connectionMap.get(args.dbType)
+	dbInterface = connectionMap.get(args.dbType)
 	meta.setDatabaseInterface(dbInterface)
 	meta.setDBName(args.dbName)
 	meta.setHostname(args.host)
