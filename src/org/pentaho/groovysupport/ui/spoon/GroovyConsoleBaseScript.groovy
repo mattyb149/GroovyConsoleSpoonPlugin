@@ -1,4 +1,4 @@
-package org.pentaho.groovyconsole.ui.spoon
+package org.pentaho.groovysupport.ui.spoon
 
 import groovy.lang.Binding
 import groovy.lang.Script

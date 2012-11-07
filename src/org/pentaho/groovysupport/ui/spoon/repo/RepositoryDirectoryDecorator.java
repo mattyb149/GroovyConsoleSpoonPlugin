@@ -1,4 +1,4 @@
-package org.pentaho.groovyconsole.ui.spoon.repo;
+package org.pentaho.groovysupport.ui.spoon.repo;
 
 import java.util.List;
 

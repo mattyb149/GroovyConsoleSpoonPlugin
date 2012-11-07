@@ -19,6 +19,7 @@ import java.util.TreeMap;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.customizers.ImportCustomizer;
+import org.codehaus.groovy.runtime.MethodClosure;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.ProgressMonitorDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
@@ -51,6 +52,12 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 	public static final SortedMap<String, DatabaseInterface> connectionMap = new TreeMap<String, DatabaseInterface>();
 	public static final Map<String, String> connectionNametoID = new HashMap<String, String>();
 
+	private static Binding scriptBinding = null;
+	private static Binding originalBinding = null;
+	private static Console console = null;
+	private static GroovyShell primingShell;
+	private static CompilerConfiguration cc;
+	
 	  // The connectionMap allows us to keep track of the connection
 	  // type we are working with and the correlating database interface
 
@@ -74,7 +81,6 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 	        throw new RuntimeException("Error creating class for: "+plugin, e);
 	      }
 	    }
-	    
 	  }
 	  
 	ResourceBundle bundle = new ResourceBundle() {
@@ -92,6 +98,44 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 	  public GroovyConsoleSpoonPlugin() {
 		  Spoon spoon = ((Spoon)SpoonFactory.getInstance());
 	      spoon.addSpoonMenuController(this);
+	      console = new Console();
+	      console.setVisualizeScriptResults(true);
+			
+			// Set default imports
+			ImportCustomizer ic = new ImportCustomizer();
+			ic.addStarImports(
+				"org.pentaho.di.repository",
+				"org.pentaho.di.trans",
+				"org.pentaho.di.job",
+				"org.pentaho.di.ui.spoon",
+				"org.pentaho.di.ui.spoon.delegates",
+				"org.pentaho.di.ui.spoon.trans",
+				"org.pentaho.di.trans.step",
+				"org.pentaho.di.cluster",
+				"org.pentaho.di.core",
+				"org.pentaho.di.core.database",
+				"org.pentaho.di.core.plugins",
+	            "org.pentaho.di.core.row",
+	            "org.pentaho.di.core.vfs",
+	            "org.pentaho.di.core.exception",
+	            "org.pentaho.groovyconsole.ui.spoon",
+	            "org.pentaho.groovyconsole.ui.spoon.repo"
+			);
+			
+			cc = new CompilerConfiguration();
+			cc.addCompilationCustomizers(ic);
+			cc.setScriptBaseClass(GroovyConsoleBaseScript.class.getName());
+			
+			// Get original shell context (for display transforms, etc.)
+			scriptBinding = console.getShell().getContext();
+			
+			console.setAfterExecution(new MethodClosure(this,"afterScriptExec"));
+								
+			// Create a shell in which to run script(s) that create the desired Binding context
+			ClassLoader cl = this.getClass().getClassLoader();
+			primingShell = new GroovyShell(cl, scriptBinding, cc);
+			primingShell.evaluate(new InputStreamReader(cl.getResourceAsStream("staging.groovy")));
+			originalBinding = primingShell.getContext();
 	  }
 	  
 	  public String getName() {
@@ -136,39 +180,7 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 			{
 				try
 				{
-					Console console = new Console();
-					console.setVisualizeScriptResults(true);
-					
-					// Set default imports
-					ImportCustomizer ic = new ImportCustomizer();
-					ic.addStarImports(
-						"org.pentaho.di.repository",
-						"org.pentaho.di.trans",
-						"org.pentaho.di.job",
-						"org.pentaho.di.ui.spoon",
-						"org.pentaho.di.ui.spoon.delegates",
-						"org.pentaho.di.ui.spoon.trans",
-						"org.pentaho.di.trans.step",
-						"org.pentaho.di.cluster",
-						"org.pentaho.di.core",
-						"org.pentaho.di.core.database",
-						"org.pentaho.di.core.plugins",
-			            "org.pentaho.di.core.row",
-			            "org.pentaho.di.core.vfs",
-			            "org.pentaho.di.core.exception",
-			            "org.pentaho.groovyconsole.ui.spoon",
-			            "org.pentaho.groovyconsole.ui.spoon.repo"
-					);
-					CompilerConfiguration cc = new CompilerConfiguration();
-					cc.addCompilationCustomizers(ic);
-					cc.setScriptBaseClass(GroovyConsoleBaseScript.class.getName());
-					
-					// Get original shell context (for display transforms, etc.)
-					Binding binding = console.getShell().getContext();
-										
-					// Create a shell in which to run script(s) that create the desired Binding context
-					GroovyShell primingShell = new GroovyShell(this.getClass().getClassLoader(), binding, cc);
-					primingShell.evaluate(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("staging.groovy")));
+					console = new Console(scriptBinding);
 					
 					// Load any staging scripts placed in the directory with the plugin
 					File pluginFolder = new File(this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile();
@@ -195,16 +207,28 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 			}
 		};
 		
-		try
-		{
+		try {
 			ProgressMonitorDialog pmd = new ProgressMonitorDialog(spoon.getShell());
-
 			pmd.run(true, true, op);
 		}
-		catch (Exception e)
-		{
+		catch (Exception e) {
 		    showErrorDialog(e, "Error with Progress Monitor Dialog", "Error with Progress Monitor Dialog");
 		}		
+	}	
+	
+	@SuppressWarnings("unused")
+	private void afterScriptExec() {
+		boolean keepContext = false;
+		Binding currentBinding = console.getShell().getContext();
+		try {
+			Object saveContext = currentBinding.getVariable("saveContext");
+			if(saveContext != null) {
+				Boolean b = Boolean.parseBoolean(saveContext.toString());
+				keepContext = b;
+			}
+		}
+		catch(Exception e) {}
+		if(!keepContext) scriptBinding = originalBinding;
 	}
 	
 	/**

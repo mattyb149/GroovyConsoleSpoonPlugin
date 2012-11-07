@@ -1,3 +1,5 @@
+package org.pentaho.groovysupport.script 
+
 import org.pentaho.di.core.database.*
 import org.pentaho.di.core.plugins.*
 import org.pentaho.di.trans.*
@@ -9,25 +11,19 @@ import org.pentaho.di.ui.spoon.delegates.*
 import org.pentaho.di.ui.spoon.trans.*
 import org.pentaho.di.cluster.*
 import org.pentaho.di.core.*
+import org.pentaho.di.core.gui.*
 import org.pentaho.di.core.row.*
 import org.pentaho.di.core.vfs.*
 import org.pentaho.vfs.ui.*
 import org.pentaho.di.core.exception.*
-import org.pentaho.groovyconsole.ui.spoon.*
-import org.pentaho.groovyconsole.ui.spoon.repo.*
+import org.pentaho.groovysupport.ui.spoon.*
+import org.pentaho.groovysupport.ui.spoon.repo.*
 
 // Groovyize PDI classes, add helper methods, etc.
 
 GroovyConsoleBaseScript.metaClass.propertyMissing = { name ->
-	if(GroovyConsoleBaseScript.metaClass.respondsTo(delegate,name)) return delegate."$name"()
+	if(GroovyConsoleBaseScript.metaClass.respondsTo(delegate,name)) return delegate?."$name"()
 	null
-}
-
-GroovyConsoleBaseScript.metaClass.trans = {
-	if(!it)
-		spoon.activeTransformation
-	else
-		spoon.findTransformation(it)
 }
 
 spoon = Spoon.instance
@@ -41,67 +37,80 @@ GroovyConsoleBaseScript.metaClass.methods = {if(it) it.class.declaredMethods els
 GroovyConsoleBaseScript.metaClass.printMethods = { methods(it).each { println it } }
 GroovyConsoleBaseScript.metaClass.props = {if(it) it.class.declaredFields else this.class.declaredFields}
 GroovyConsoleBaseScript.metaClass.properties = {properties(it)}
-GroovyConsoleBaseScript.metaClass.printProps = { props(it).each { println it } }
-GroovyConsoleBaseScript.metaClass.activeTrans = {spoon.activeTransformation}
-GroovyConsoleBaseScript.metaClass.transGraph = spoon.activeTransGraph
-GroovyConsoleBaseScript.metaClass.activeTransGraph = {spoon.activeTransGraph}
-GroovyConsoleBaseScript.metaClass.job = { 
-	if(!it) 
-		spoon.activeJob
-	else
-		spoon.findJob(it)
-}
-GroovyConsoleBaseScript.metaClass.activeJob = {spoon.activeJob}
-GroovyConsoleBaseScript.metaClass.jobGraph = spoon.activeJobGraph
-GroovyConsoleBaseScript.metaClass.activeJobGraph = {spoon.activeJobGraph}
+GroovyConsoleBaseScript.metaClass.printProps = { props(it)?.each { println it } }
+GroovyConsoleBaseScript.metaClass.activeTrans = {spoon?.activeTransformation}
+GroovyConsoleBaseScript.metaClass.trans = { return it ? spoon?.findTransformation(it) : spoon?.activeTransformation }
+GroovyConsoleBaseScript.metaClass.transGraph = {spoon?.activeTransGraph}
+GroovyConsoleBaseScript.metaClass.activeTransGraph = {spoon?.activeTransGraph}
+GroovyConsoleBaseScript.metaClass.job = { return it ?  spoon.findJob(it) : spoon.activeJob } 
+GroovyConsoleBaseScript.metaClass.activeJob = {spoon?.activeJob}
+GroovyConsoleBaseScript.metaClass.jobGraph = {spoon?.activeJobGraph}
+GroovyConsoleBaseScript.metaClass.activeJobGraph = {spoon?.activeJobGraph}
 
-GroovyConsoleBaseScript.metaClass.step = {spoon.activeTransformation.findStep(it)}
-GroovyConsoleBaseScript.metaClass.steps = {spoon.activeTransformation.steps}
-GroovyConsoleBaseScript.metaClass.entry = {spoon.activeJob.findJobEntry(it)}
-GroovyConsoleBaseScript.metaClass.entries = {spoon.activeJob.jobCopies}
+GroovyConsoleBaseScript.metaClass.step = {spoon?.activeTransformation?.findStep(it)}
+GroovyConsoleBaseScript.metaClass.steps = {spoon?.activeTransformation?.steps}
+GroovyConsoleBaseScript.metaClass.entry = {spoon?.activeJob?.findJobEntry(it)}
+GroovyConsoleBaseScript.metaClass.entries = {spoon?.activeJob?.jobCopies}
 
-GroovyConsoleBaseScript.metaClass.runTrans = { transMeta ->
+Spoon.metaClass.runTrans = { transMeta ->
 
-	tm = transMeta ?: spoon.activeTransformation
+	tm = transMeta ?: delegate.activeTransformation
 	if(tm != null) {
 		// Compatibility with 4.4.0 (no LogLevel param)
-		if(spoon.metaClass.respondsTo(spoon.instance, 'executeTransformation',
+		if(delegate.metaClass.respondsTo(spoon.instance, 'executeTransformation',
 			TransMeta, Boolean, Boolean, Boolean, Boolean, Boolean, Date, Boolean, LogLevel)) {
-			spoon.executeTransformation(tm, true, false, false, false, false, new Date(), false, spoon.log.logLevel)
+			delegate.executeTransformation(tm, true, false, false, false, false, new Date(), false, spoon.log?.logLevel)
 		}
-		else if(spoon.metaClass.respondsTo(spoon.instance, 'executeTransformation',
+		else if(delegate.metaClass.respondsTo(spoon.instance, 'executeTransformation',
 			TransMeta, Boolean, Boolean, Boolean, Boolean, Boolean, Date, Boolean)) {
-			spoon.executeTransformation(tm, true, false, false, false, false, new Date(), false)
+			delegate.executeTransformation(tm, true, false, false, false, false, new Date(), false)
 		}
-		tg = spoon.activeTransGraph
-		try {
-			// Wait for trans to start
-			while(!tg.isRunning()) {
-				Thread.sleep(10)
+		tg = delegate?.activeTransGraph
+		if(tg) {
+			try {
+				// Wait for trans to start
+				while(!tg.isRunning()) {
+					Thread.sleep(10)
+				}
+				// Wait for trans to end
+				while(tg.isRunning()) {
+					Thread.sleep(100)
+				}
 			}
-			// Wait for trans to end
-			while(tg.isRunning()) {
-				Thread.sleep(100)
-			}
+			catch(Exception e) {}
 		}
-		catch(InterruptedException ie) {}
 	}
 }
 
-GroovyConsoleBaseScript.metaClass.runJob = { jobMeta ->
-	jm = jobMeta ?: spoon.getActiveJob()
+Spoon.metaClass.runJob = { jobMeta ->
+	jm = jobMeta ?: spoon?.getActiveJob()
 	if(jm != null) {
-		spoon.executeJob(jm, true, false, new Date(), false, null, 0);
+		spoon?.executeJob(jm, true, false, new Date(), false, null, 0);
 	}
 }
+
+Trans.metaClass.run = { args ->
+	if(!delegate.isReadyToStart()) delegate.prepareExecution(args)
+	delegate.startThreads();
+	delegate.waitUntilFinished();
+	delegate
+}
+
+TransMeta.metaClass.run = { args ->
+	
+	def trans = new Trans(delegate)
+	trans.run(args)
+	delegate
+}
+
 
 // Database methods
-GroovyConsoleBaseScript.metaClass.database = { dbName -> spoon.activeDatabases.find {it.name.equalsIgnoreCase(dbName)} }
+GroovyConsoleBaseScript.metaClass.database = { dbName -> spoon?.activeDatabases?.find {it.name?.equalsIgnoreCase(dbName)} }
 GroovyConsoleBaseScript.metaClass.db = {database(it)}
-GroovyConsoleBaseScript.metaClass.databases = {spoon.activeDatabases}
+GroovyConsoleBaseScript.metaClass.databases = {spoon?.activeDatabases}
 GroovyConsoleBaseScript.metaClass.dbs = {databases()}
 GroovyConsoleBaseScript.metaClass.createDatabase = {args ->
-	meta = new org.pentaho.di.core.database.DatabaseMeta()
+	meta = new DatabaseMeta()
 	dbInterface = org.pentaho.groovyconsole.ui.spoon.GroovyConsoleSpoonPlugin.connectionMap.get(args.dbType)
 	meta.setDatabaseInterface(dbInterface)
 	meta.setDBName(args.dbName)
@@ -128,16 +137,16 @@ RepoHelper.metaClass.propertyMissing << { name ->
 		file = new File(name)
 		dir = file?.parent?.replace(File.separator, RepositoryDirectory.DIRECTORY_SEPARATOR) ?: RepositoryDirectory.DIRECTORY_SEPARATOR
 		objName = file?.name
-		repoDir = spoon.repository?.findDirectory(dir);
+		repoDir = spoon?.repository?.findDirectory(dir);
 		
 		// Try to load the name as a job first
-		try{ return spoon.repository?.loadJob(objName, repoDir, null, false, null) } catch(Exception e) {}
+		try{ return spoon?.repository?.loadJob(objName, repoDir, null, false, null) } catch(Exception e) {}
 				
 		// then a transformation
-		try{ return spoon.repository?.loadTransformation(objName, repoDir, null, false, null)} catch(Exception e) {}
+		try{ return spoon?.repository?.loadTransformation(objName, repoDir, null, false, null)} catch(Exception e) {}
 		
-		tryDir = spoon.repository?.findDirectory(name);
-		return tryDir ? new org.pentaho.groovyconsole.ui.spoon.repo.RepositoryDirectoryDecorator(tryDir) : null
+		tryDir = spoon?.repository?.findDirectory(name)
+		return tryDir ? new RepositoryDirectoryDecorator(tryDir) : null
 		
 		// TODO - others?
 	}
@@ -148,7 +157,7 @@ RepoHelper.metaClass.propertyMissing << { name ->
 }
 
 RepositoryDirectoryDecorator.metaClass.propertyMissing << { name ->
-	if(RepoHelper.metaClass.respondsTo(delegate,name)) return delegate."$name"()
+	if(RepoHelper.metaClass.respondsTo(delegate,name)) return delegate?."$name"()
 	null
 }
 
@@ -160,9 +169,9 @@ StepMeta.metaClass.openDialog = {
 	spoon.display.asyncExec(new Runnable() {
 		public void run() {
 		  try {
-			def c = Class.forName(smi.dialogClassName)
-			def d = c.newInstance(Spoon.instance.shell, smi, trans(), name)
-			d.open()
+			def c = Class.forName(smi?.dialogClassName)
+			def d = c.newInstance(Spoon.instance?.shell, smi, trans(), name)
+			d?.open()
 		  } catch (Exception e) {
 		   e.printStackTrace(System.err);
 		  }
@@ -173,7 +182,7 @@ StepMeta.metaClass.openDialog = {
 StepMeta.metaClass.dlg = {openDialog()}
 
 StepMeta.metaClass.propertyMissing << { name ->
-	if(StepMeta.metaClass.respondsTo(delegate,name)) return delegate."$name"()
+	if(StepMeta.metaClass.respondsTo(delegate,name)) return delegate?."$name"()
 	null
 }
 
@@ -182,38 +191,38 @@ plugins = pluginRegistry
 
 PluginRegistry.metaClass.propertyMissing << { name ->
 	def p = delegate.findPluginWithName(
-		delegate.pluginTypes.find { pluginType ->
+		delegate.pluginTypes?.find { pluginType ->
 			delegate.findPluginWithName(pluginType, name)
 		}, name)
 	if(p) return p
 	p = delegate.findPluginWithId(
-		delegate.pluginTypes.find { pluginType ->
+		delegate.pluginTypes?.find { pluginType ->
 			delegate.findPluginWithId(pluginType, name)
 		}, name)
 }
 
 Plugin.metaClass.makeNew = {
-	def c = plugins.loadClass(delegate)
-	c.setDefault()
-	def pid = plugins.getPluginId(delegate.pluginType, c)
-	def mdg = new org.pentaho.di.trans.step.StepMeta(pid, delegate.name, c)
+	def c = plugins?.loadClass(delegate)
+	c?.setDefault()
+	def pid = plugins?.getPluginId(delegate.pluginType, c)
+	def mdg = new StepMeta(pid, delegate.name, c)
 }
 
 Plugin.metaClass.addNew = {
 	def mdg = delegate.makeNew()
-	mdg.location= new org.pentaho.di.core.gui.Point(20,20)
-	mdg.draw = true
-	activeTrans().addStep(mdg)
+	mdg?.location= new Point(20,20)
+	mdg?.draw = true
+	activeTrans()?.addStep(mdg)
 	async {
-		spoon.refreshTree()
-		activeTransGraph().redraw();
+		spoon?.refreshTree()
+		activeTransGraph()?.redraw();
 	}
 }
 
 // Threading methods
 async = {c ->
 	
-	spoon.display.asyncExec(new Runnable() {
+	spoon?.display?.asyncExec(new Runnable() {
 		public void run() {
 		  try {
 			c()
@@ -226,7 +235,7 @@ async = {c ->
 
 sync = {c ->
 	
-	spoon.display.syncExec(new Runnable() {
+	spoon?.display?.syncExec(new Runnable() {
 		public void run() {
 		  try {
 			c()
@@ -247,21 +256,21 @@ Integer.metaClass.waitThenRun = {c ->
 // Access methods
 makePublic = {obj, name ->
 	// try methods first, then fields
-	obj.class.declaredMethods.find {it.name.equals(name)}.each { it.accessible = true }
-	obj.class.declaredFields.find {it.name.equals(name)}.each { it.accessible = true }
+	obj.class.declaredMethods.find {it.name?.equals(name)}.each { it.accessible = true }
+	obj.class.declaredFields.find {it.name?.equals(name)}.each { it.accessible = true }
 }
 
 // Operator overloading
 TransMeta.metaClass.plus = {x ->
 	if(x instanceof StepMeta) {
 		x.draw = true
-		x.location= new org.pentaho.di.core.gui.Point(20,20)
+		x.location= new Point(20,20)
 		delegate.addStep(x)
-		def tg = activeTransGraph()
-		if(tg.managedObject == delegate) {
+		def tg = spoon?.activeTransGraph
+		if(tg?.managedObject == delegate) {
 			async { 
-				spoon.refreshTree()
-				tg.redraw()
+				spoon?.refreshTree()
+				tg?.redraw()
 			}
 		}
 		delegate
@@ -287,10 +296,10 @@ TransMeta.metaClass.plus = {x ->
 
 StepMeta.metaClass.rightShift = { x ->
 	if(x instanceof StepMeta) {
-		activeTrans().addTransHop(new TransHopMeta(delegate, x))
+		delegate.parentTransMeta?.addTransHop(new TransHopMeta(delegate, x))
 		async {
-			spoon.refreshTree()
-			activeTransGraph().redraw()
+			spoon?.refreshTree()
+			activeTransGraph()?.redraw()
 		}
 	}
 	// return right op so hops can be chained
@@ -299,13 +308,12 @@ StepMeta.metaClass.rightShift = { x ->
 
 StepMeta.metaClass.leftShift = { x ->
 	if(x instanceof StepMeta) {
-		activeTrans().addTransHop(new TransHopMeta(x, delegate))
+		delegate.parentTransMeta?.addTransHop(new TransHopMeta(x, delegate))
 		async {
-			spoon.refreshTree()
-			activeTransGraph().redraw()
+			spoon?.refreshTree()
+			activeTransGraph()?.redraw()
 		}
 	}
 	// return right op so hops can be chained
 	x
 }
-
