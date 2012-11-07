@@ -1,21 +1,22 @@
 package org.pentaho.groovysupport.script 
 
+import org.pentaho.di.cluster.*
+import org.pentaho.di.core.*
 import org.pentaho.di.core.database.*
+import org.pentaho.di.core.exception.*
+import org.pentaho.di.core.gui.*
+import org.pentaho.di.core.logging.*
 import org.pentaho.di.core.plugins.*
+import org.pentaho.di.core.row.*
+import org.pentaho.di.core.vfs.*
+import org.pentaho.di.job.*
+import org.pentaho.di.repository.*
 import org.pentaho.di.trans.*
 import org.pentaho.di.trans.step.*
-import org.pentaho.di.repository.*
-import org.pentaho.di.job.*
 import org.pentaho.di.ui.spoon.*
 import org.pentaho.di.ui.spoon.delegates.*
 import org.pentaho.di.ui.spoon.trans.*
-import org.pentaho.di.cluster.*
-import org.pentaho.di.core.*
-import org.pentaho.di.core.gui.*
-import org.pentaho.di.core.row.*
-import org.pentaho.di.core.vfs.*
 import org.pentaho.vfs.ui.*
-import org.pentaho.di.core.exception.*
 import org.pentaho.groovysupport.ui.spoon.*
 import org.pentaho.groovysupport.ui.spoon.repo.*
 
@@ -59,7 +60,7 @@ Spoon.metaClass.runTrans = { transMeta ->
 		// Compatibility with 4.4.0 (no LogLevel param)
 		if(delegate.metaClass.respondsTo(spoon.instance, 'executeTransformation',
 			TransMeta, Boolean, Boolean, Boolean, Boolean, Boolean, Date, Boolean, LogLevel)) {
-			delegate.executeTransformation(tm, true, false, false, false, false, new Date(), false, spoon.log?.logLevel)
+			delegate.executeTransformation(tm, true, false, false, false, false, new Date(), false, delegate.log?.logLevel)
 		}
 		else if(delegate.metaClass.respondsTo(spoon.instance, 'executeTransformation',
 			TransMeta, Boolean, Boolean, Boolean, Boolean, Boolean, Date, Boolean)) {

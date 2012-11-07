@@ -58,7 +58,7 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 	public void applyToContainer(String category, XulDomContainer container) throws XulException {
 		container.registerClassLoader(getClass().getClassLoader());
 	    if(category.equals("spoon")){
-	      container.loadOverlay("org/pentaho/groovyconsole/ui/spoon/spoon_overlays.xul", bundle);
+	      container.loadOverlay("org/pentaho/groovysupport/ui/spoon/spoon_overlays.xul", bundle);
 	      container.addEventHandler(this);
 	    }
 	}

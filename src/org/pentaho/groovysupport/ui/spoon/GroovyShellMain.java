@@ -43,6 +43,7 @@ public class GroovyShellMain {
 			"org.pentaho.di.cluster",
 			"org.pentaho.di.core",
 			"org.pentaho.di.core.database",
+			"org.pentaho.di.core.logging",
 			"org.pentaho.di.core.plugins",
             "org.pentaho.di.core.row",
             "org.pentaho.di.core.vfs",
