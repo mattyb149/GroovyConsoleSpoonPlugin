@@ -286,6 +286,17 @@ makePublic = {obj, name ->
 }
 
 // Operator overloading
+Spoon.metaClass.plus = {x ->
+	if(x instanceof TransMeta) {
+		sync {
+			delegate.addTransGraph(x)
+			delegate.refreshTree()
+			delegate.activeTransGraph().redraw();
+		}
+	}	
+	delegate
+}
+
 TransMeta.metaClass.plus = {x ->
 	if(x instanceof StepMeta) {
 		x.draw = true
