@@ -70,7 +70,7 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 
 	@Override
 	public SpoonPerspective getPerspective() {
-		return SpoonPerspectiveManager.getInstance().getActivePerspective();
+		return null;
 	}
 
 	@Override
