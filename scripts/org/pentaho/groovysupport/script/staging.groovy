@@ -156,6 +156,7 @@ TransMeta.metaClass.run = {runTrans(delegate)}
 JobMeta.metaClass.propertyMissing << { name -> delegate.findJobEntry(name) }
 JobMeta.metaClass.run = {runJob(delegate)}
 
+
 RepoHelper.metaClass.propertyMissing << { name ->
 	try {
 		if(RepoHelper.metaClass.respondsTo(delegate,name)) return delegate."$name"()
@@ -238,7 +239,7 @@ Plugin.metaClass.addNew = {
 	mdg?.location= new Point(20,20)
 	mdg?.draw = true
 	activeTrans()?.addStep(mdg)
-	async {
+	sync {
 		spoon?.refreshTree()
 		activeTransGraph()?.redraw();
 	}
@@ -304,7 +305,7 @@ TransMeta.metaClass.plus = {x ->
 		delegate.addStep(x)
 		def tg = spoon?.activeTransGraph
 		if(tg?.managedObject == delegate) {
-			async { 
+			sync { 
 				spoon?.refreshTree()
 				tg?.redraw()
 			}
@@ -333,7 +334,7 @@ TransMeta.metaClass.plus = {x ->
 StepMeta.metaClass.rightShift = { x ->
 	if(x instanceof StepMeta) {
 		delegate.parentTransMeta?.addTransHop(new TransHopMeta(delegate, x))
-		async {
+		sync {
 			spoon?.refreshTree()
 			activeTransGraph()?.redraw()
 		}
@@ -345,7 +346,7 @@ StepMeta.metaClass.rightShift = { x ->
 StepMeta.metaClass.leftShift = { x ->
 	if(x instanceof StepMeta) {
 		delegate.parentTransMeta?.addTransHop(new TransHopMeta(x, delegate))
-		async {
+		sync {
 			spoon?.refreshTree()
 			activeTransGraph()?.redraw()
 		}
