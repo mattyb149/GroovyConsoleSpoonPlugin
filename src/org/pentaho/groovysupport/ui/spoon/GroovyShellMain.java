@@ -23,6 +23,11 @@ public class GroovyShellMain {
 	private ClassLoader classLoader;
 	private File pluginFolder;
 	
+	public GroovyShellMain() {
+		classLoader = GroovyShellMain.class.getClassLoader();
+		pluginFolder = new File(GroovyShellMain.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParentFile();
+	}
+	
 	public GroovyShellMain(ClassLoader cl, File pf) {
 		classLoader = cl;
 		pluginFolder = pf;
