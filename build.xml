@@ -1,90 +1,42 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- WARNING: Eclipse auto-generated file.
-              Any modifications will be overwritten.
-              To include a user specific buildfile here, simply create one in the same
-              directory with the processing instruction <?eclipse.ant.import?>
-              as the first entry and export the buildfile again. -->
-<project basedir="." default="jar" name="GroovyConsoleSpoonPlugin">
-    <property environment="env"/>
-    <property name="Kettle trunk - merge.location" value="../Kettle trunk - merge"/>
-    <property name="ECLIPSE_HOME" value="../../springsource/sts-2.9.1.RELEASE"/>
-    <property name="debuglevel" value="source,lines,vars"/>
-    <property name="target" value="1.6"/>
-    <property name="source" value="1.6"/>
-    <path id="Groovy DSL Support.libraryclasspath">
-        <pathelement location="../../Users/MBurgess/.groovy/greclipse/global_dsld_support"/>
-        <pathelement location="${ECLIPSE_HOME}/plugins/org.codehaus.groovy_1.8.6.xx-20121002-1500-e37/plugin_dsld_support/"/>
-    </path>
-    <path id="GroovyConsoleSpoonPlugin.classpath">
-        <pathelement location="bin"/>
-        <path refid="Groovy DSL Support.libraryclasspath"/>
-        <pathelement location="${Kettle trunk - merge.location}/libext/pentaho/pentaho-xul-core-TRUNK-SNAPSHOT.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/libswt/win64/swt.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/libext/pentaho/kettle-vfs-20100924.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/libext/pentaho/pentaho-xul-swt-TRUNK-SNAPSHOT.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/libext/pentaho/pentaho-vfs-browser-TRUNK-SNAPSHOT.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/libext/reporting/groovy-all-1.8.0.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/lib/kettle-core.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/lib/kettle-db.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/lib/kettle-dbdialog.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/lib/kettle-engine.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/lib/kettle-jdbc.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/lib/kettle-ui-swt.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/libswt/jface.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/libswt/common.jar"/>
-        <pathelement location="${Kettle trunk - merge.location}/libext/commons/commons-httpclient-3.1.jar"/>
-    </path>
-    <target name="init">
-        <mkdir dir="bin"/>
-        <copy includeemptydirs="false" todir="bin">
-            <fileset dir="src">
-                <exclude name="**/*.launch"/>
-                <exclude name="**/*.java"/>
-            </fileset>
-        </copy>
-        <copy includeemptydirs="false" todir="bin">
-            <fileset dir="scripts">
-                <exclude name="**/*.launch"/>
-                <exclude name="**/*.java"/>
-            </fileset>
-        </copy>
-    </target>
-    <target name="clean">
-        <delete dir="bin"/>
-    </target>
-    <target depends="clean" name="cleanall"/>
-    <target depends="build-subprojects,build-project" name="build"/>
-    <target name="build-subprojects"/>
-    <target depends="init" name="build-project">
-        <echo message="${ant.project.name}: ${ant.file}"/>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
-            <src path="src"/>
-            <classpath refid="GroovyConsoleSpoonPlugin.classpath"/>
-        </javac>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
-            <src path="scripts"/>
-            <classpath refid="GroovyConsoleSpoonPlugin.classpath"/>
-        </javac>
-    </target>
-    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
-    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
-        <copy todir="${ant.library.dir}">
-            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
-        </copy>
-        <unzip dest="${ant.library.dir}">
-            <patternset includes="jdtCompilerAdapter.jar"/>
-            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
-        </unzip>
-    </target>
-    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
-        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
-        <antcall target="build"/>
-    </target>
-	  <target description="Build JAR" name="jar">
-	  	<jar jarfile="GroovyConsoleSpoonPlugin.jar">
-	  	  <fileset dir="bin" excludes="**/staging*.class" />
-	  	  <service type="javax.script.ScriptEngineFactory"
-	  	           provider="org.pentaho.groovysupport.ui.spoon.GroovySpoonScriptEngineFactory"/>
-	  	</jar>
-	  </target>
+<project name="GroovyConsoleSpoonPlugin" default="default" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
+	<description>
+		A Spoon plugin that offers the Groovy Console inside PDI, along with helper classes/methods for the PDI API.
+	</description>
+
+	<tstamp prefix="start"/>
+	
+	<tstamp>
+	   <format property="compile.timestamp" pattern="yyyy-MM-dd HH.mm.ss" />
+    </tstamp>
+    
+    <!-- Look for user-override properties file first -->        
+    <property file="override.properties"/>
+    <!-- set global properties for this build -->
+    <property file="build.properties"/>
+
+	<!-- Import the common_build.xml file which contains all the default tasks --> 
+	<import file="build-res/subfloor-pkg.xml" />
+	
+	<!--=======================================================================
+      default
+      
+      The target that is run if no target is given
+      ====================================================================-->
+  <target name="default" depends="init,resolve,resolve-runtime,jar,package" />
+	
+	<!-- override of jar target.. this definitely should be moved into common build -->
+  <target name="jar"
+          depends="version-properties,set-build.id,create-version-file"
+          description="Jars up the bin directory after a compile">
+    <jar destfile="${dist.dir}/${ivy.artifact.id}-${project.revision}.jar">
+      <manifest>
+        <attribute name="Implementation-Title" value="${impl.title}" />
+        <attribute name="Implementation-Version" value="${project.revision}.${build.id}" />
+        <attribute name="Implementation-Vendor" value="${impl.vendor}" />
+        <attribute name="Implementation-ProductID" value="${impl.productID}" />
+      </manifest>
+      <fileset dir="${classes.dir}" />
+      <fileset dir="scripts" />
+    </jar>
+  </target>
 </project>

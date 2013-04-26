@@ -1,6 +1,7 @@
 package org.pentaho.groovysupport.ui.spoon;
 
 import java.io.File;
+import java.lang.reflect.Method;
 
 import groovy.ui.Console;
 
@@ -18,13 +19,18 @@ public class GroovyConsoleMain {
 	
 	public void run() {
 		Console console = new Console();
-		console.setVisualizeScriptResults(true);
+		try {
+      Method setVisualizeScriptResults = Console.class.getMethod("setVisualizeScriptResults", Boolean.TYPE);
+      setVisualizeScriptResults.invoke(console, true);
+    } catch (Exception e) {
+      System.out.println("WARNING: You are using an old version of Groovy, please update to at least 1.8");
+    }
 		
 		// Get original shell context (for display transforms, etc.)
 		console.setShell(groovyShell.createShell(console.getShell().getContext()));
 		console.setVariable("gshell",groovyShell);
 		console.setVariable("thisConsole",console);
-	    console.run();
+		console.run();
 	}
 	
 	public static void main(String[] args) {

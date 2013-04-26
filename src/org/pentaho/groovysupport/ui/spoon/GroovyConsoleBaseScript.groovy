@@ -1,17 +1,16 @@
-package org.pentaho.groovysupport.ui.spoon
+package org.pentaho.groovysupport.ui.spoon;
 
-import groovy.lang.Binding
-import groovy.lang.Script
-import org.pentaho.vfs.ui.*
+import groovy.lang.Binding;
+import groovy.lang.Script;
 
 abstract class GroovyConsoleBaseScript extends Script {
 
 	public GroovyConsoleBaseScript() {
-		super()
+		super();
 	}
 
 	public GroovyConsoleBaseScript(Binding binding) {
-		super(binding)
+		super(binding);
 	}
 	
 }

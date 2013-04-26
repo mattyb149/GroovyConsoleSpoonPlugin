@@ -34,16 +34,16 @@ slaveConnectionManager = SlaveConnectionManager.instance
 defaultVarMap = KettleVariablesList.instance.defaultValueMap
 defaultVarDescMap = KettleVariablesList.instance.descriptionMap
 
-GroovyConsoleBaseScript.metaClass.methods = {if(it) it.class.declaredMethods else this.class.declaredMethods}
+GroovyConsoleBaseScript.metaClass.methods = {it ? it.class.declaredMethods : this.class.declaredMethods}
 GroovyConsoleBaseScript.metaClass.printMethods = { methods(it).each { println it } }
-GroovyConsoleBaseScript.metaClass.props = {if(it) it.class.declaredFields else this.class.declaredFields}
+GroovyConsoleBaseScript.metaClass.props = {it ? it.class.declaredFields : this.class.declaredFields}
 GroovyConsoleBaseScript.metaClass.properties = {properties(it)}
 GroovyConsoleBaseScript.metaClass.printProps = { props(it)?.each { println it } }
 GroovyConsoleBaseScript.metaClass.activeTrans = {spoon?.activeTransformation}
-GroovyConsoleBaseScript.metaClass.trans = { return it ? spoon?.findTransformation(it) : spoon?.activeTransformation }
+GroovyConsoleBaseScript.metaClass.trans = { it ? spoon?.findTransformation(it) : spoon?.activeTransformation }
 GroovyConsoleBaseScript.metaClass.transGraph = {spoon?.activeTransGraph}
 GroovyConsoleBaseScript.metaClass.activeTransGraph = {spoon?.activeTransGraph}
-GroovyConsoleBaseScript.metaClass.job = { return it ?  spoon.findJob(it) : spoon.activeJob } 
+GroovyConsoleBaseScript.metaClass.job = { it ?  spoon.findJob(it) : spoon.activeJob } 
 GroovyConsoleBaseScript.metaClass.activeJob = {spoon?.activeJob}
 GroovyConsoleBaseScript.metaClass.jobGraph = {spoon?.activeJobGraph}
 GroovyConsoleBaseScript.metaClass.activeJobGraph = {spoon?.activeJobGraph}
@@ -52,6 +52,17 @@ GroovyConsoleBaseScript.metaClass.step = {spoon?.activeTransformation?.findStep(
 GroovyConsoleBaseScript.metaClass.steps = {spoon?.activeTransformation?.steps}
 GroovyConsoleBaseScript.metaClass.entry = {spoon?.activeJob?.findJobEntry(it)}
 GroovyConsoleBaseScript.metaClass.entries = {spoon?.activeJob?.jobCopies}
+GroovyConsoleBaseScript.metaClass.hop = {spoon?.activeTransformation?.hop(it)}
+GroovyConsoleBaseScript.metaClass.hops = {spoon?.activeTransformation?.hops}
+
+TransMeta.metaClass.hop = { delegate.findTransHop(it) }
+TransMeta.metaClass.hops = {
+	def hopList = []
+	(0..delegate.nrTransHops()-1).each { i ->
+		hopList << delegate.getTransHop(i)
+	}
+	hopList
+}
 
 Spoon.metaClass.runTrans = { transMeta ->
 

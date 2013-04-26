@@ -1,14 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="scripts"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/Kettle 4.4.0"/>
-	<classpathentry exported="true" kind="con" path="GROOVY_DSL_SUPPORT"/>
-	<classpathentry kind="lib" path="C:/workspace-sts/Kettle trunk/libext/pentaho/pentaho-xul-core-TRUNK-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="C:/workspace-sts/Kettle trunk/libswt/win64/swt.jar"/>
-	<classpathentry kind="lib" path="C:/workspace-sts/Kettle trunk/libext/pentaho/kettle-vfs-20100924.jar"/>
-	<classpathentry kind="lib" path="C:/workspace-sts/Kettle trunk/libext/pentaho/pentaho-xul-swt-TRUNK-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="C:/workspace-sts/Kettle trunk/libext/pentaho/pentaho-vfs-browser-TRUNK-SNAPSHOT.jar"/>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="output" path="bin/classes"/>
+	<classpathentry kind="lib" path="dev-lib/commands-3.3.0-I20070605-0010.jar" />
+	<classpathentry kind="lib" path="dev-lib/common-3.3.0-v20070426.jar" />
+	<classpathentry kind="lib" path="dev-lib/commons-beanutils-1.6.jar" />
+	<classpathentry kind="lib" path="dev-lib/commons-collections-3.2.jar" />
+	<classpathentry kind="lib" path="dev-lib/commons-httpclient-3.0.1.jar" />
+	<classpathentry kind="lib" path="dev-lib/commons-io-1.4.jar" />
+	<classpathentry kind="lib" path="dev-lib/commons-lang-2.2.jar" />
+	<classpathentry kind="lib" path="dev-lib/commons-logging-1.1.jar" />
+	<classpathentry kind="lib" path="dev-lib/commons-net-1.4.1.jar" />
+	<classpathentry kind="lib" path="dev-lib/commons-vfs-1.0.jar" />
+	<classpathentry kind="lib" path="dev-lib/dom4j-1.6.1.jar" />
+	<classpathentry kind="lib" path="dev-lib/groovy-1.8.6.jar" />
+	<classpathentry kind="lib" path="dev-lib/groovy-all-1.5.6.jar" />
+	<classpathentry kind="lib" path="dev-lib/jaxen-1.1.jar" />
+	<classpathentry kind="lib" path="dev-lib/jface-3.3.0-I20070606-0010.jar" />
+	<classpathentry kind="lib" path="dev-lib/kettle-core-4.4.0-GA.jar" />
+	<classpathentry kind="lib" path="dev-lib/kettle-db-4.4.0-GA.jar" />
+	<classpathentry kind="lib" path="dev-lib/kettle-dbdialog-4.4.0-GA.jar" />
+	<classpathentry kind="lib" path="dev-lib/kettle-engine-4.4.0-GA.jar" />
+	<classpathentry kind="lib" path="dev-lib/kettle-ui-swt-4.4.0-GA.jar" />
+	<classpathentry kind="lib" path="dev-lib/mail-1.3.2.jar" />
+	<classpathentry kind="lib" path="dev-lib/oro-2.0.8.jar" />
+	<classpathentry kind="lib" path="dev-lib/pentaho-vfs-browser-2.0.5.jar" />
+	<classpathentry kind="lib" path="dev-lib/pentaho-xul-core-3.3.5.jar" />
+	<classpathentry kind="lib" path="dev-lib/pentaho-xul-swing-3.3.5.jar" />
+	<classpathentry kind="lib" path="dev-lib/pentaho-xul-swt-3.3.5.jar" />
+	<classpathentry kind="lib" path="dev-lib/swt-linux-x86_64-3.7.jar" />
+	<classpathentry kind="lib" path="lib/groovy-1.8.6.jar" />
+	<classpathentry kind="lib" path="test-lib/groovy-1.8.6.jar" />
+	<classpathentry kind="lib" path="test-lib/junit-4.7.jar" />
 </classpath>

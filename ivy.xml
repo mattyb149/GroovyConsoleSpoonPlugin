@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0">
+  <info organisation="pentaho" module="pentaho-kettle" revision="${project.revision}" />
+  <configurations>
+    <conf name="default" />
+    <conf name="runtime" />
+    <conf name="test" visibility="private" />
+  </configurations>
+  
+  <dependencies defaultconf="default->default">
+    <!-- Kettle module dependencies-->
+    <dependency org="pentaho-kettle" name="kettle-core"     rev="${dependency.kettle.revision}" transitive="false"/>
+    <dependency org="pentaho-kettle" name="kettle-db"       rev="${dependency.kettle.revision}" transitive="false"/>
+    <dependency org="pentaho-kettle" name="kettle-engine"   rev="${dependency.kettle.revision}" transitive="false"/>
+    <dependency org="pentaho-kettle" name="kettle-dbdialog" rev="${dependency.kettle.revision}" transitive="false"/>
+    <dependency org="pentaho-kettle" name="kettle-ui-swt"   rev="${dependency.kettle.revision}" transitive="false"/>
+    
+    <!-- Pentaho (non-Kettle) dependencies -->
+    <dependency org="pentaho"               name="pentaho-vfs-browser" rev="${dependency.pentaho-vfs-browser.revision}" changing="true"/>
+    <dependency org="pentaho"               name="pentaho-xul-core"    rev="${dependency.pentaho-xul.revision}" changing="true"/>
+    <dependency org="pentaho"               name="pentaho-xul-swt"     rev="${dependency.pentaho-xul.revision}" changing="true"/>
+    <dependency org="pentaho"               name="pentaho-xul-swing"   rev="${dependency.pentaho-xul.revision}" changing="true"/>
+    
+    <!-- Third-party dependencies -->
+    <dependency org="org.codehaus.groovy" name="groovy" rev="1.8.6" transitive="false" conf="*->default"/>
+    
+    <!-- SWT it required to compile any version of any architecture will work -->
+    <dependency org="org.eclipse.swt"       name="swt-linux-x86_64"    rev="3.7" transitive="false" />
+    <dependency org="org.eclipse.equinox"   name="common"              rev="3.3.0-v20070426"  transitive="false"/>
+    <dependency org="org.eclipse"           name="jface"               rev="3.3.0-I20070606-0010" transitive="false" conf="default->default" />
+    
+    
+    <!-- Test dependencies -->
+    <dependency org="junit"                    name="junit"                rev="4.7"    transitive="false" conf="test->default"/>          
+    
+  </dependencies>
+</ivy-module>
