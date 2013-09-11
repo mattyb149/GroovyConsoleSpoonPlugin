@@ -1141,7 +1141,7 @@ TYPICAL TARGET SEQUENCE
       Performs the actual compile
       ====================================================================-->
   <target name="compile.compile" depends="init">
-    <!--<javac destdir="${classes.dir}"
+    <javac destdir="${classes.dir}"
            debug="${javac.debug}"
            deprecation="${javac.deprecation}"
            fork="true"
@@ -1153,16 +1153,7 @@ TYPICAL TARGET SEQUENCE
         <path refid="classpath" />
       </classpath>
       <src path="${src.dir}" />
-    </javac>-->
-  	<groovyc destdir="${classes.dir}"
-           fork="true"
-           memorymaximumsize="${javac.maxmemory}"
-           includeantruntime="false">
-      <classpath>
-        <path refid="classpath" />
-      </classpath>
-      <src path="${src.dir}" />
-    </groovyc>
+    </javac>
   </target>
 
 
