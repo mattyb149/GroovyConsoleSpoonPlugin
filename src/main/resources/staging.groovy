@@ -27,6 +27,10 @@ GroovyConsoleBaseScript.metaClass.propertyMissing = { name ->
 	null
 }
 
+// Initialize environment for the user
+KettleEnvironment.init(false)
+
+// Get singletons
 spoon = Spoon.instance
 pluginRegistry = PluginRegistry.instance
 kettleVFS = KettleVFS.instance
@@ -39,6 +43,7 @@ GroovyConsoleBaseScript.metaClass.printMethods = { methods(it).each { println it
 GroovyConsoleBaseScript.metaClass.props = {it ? it.class.declaredFields : this.class.declaredFields}
 GroovyConsoleBaseScript.metaClass.properties = {properties(it)}
 GroovyConsoleBaseScript.metaClass.printProps = { props(it)?.each { println it } }
+GroovyConsoleBaseScript.metaClass.init = {simpleJndi -> KettleEnvironment.init(simpleJndi ?: false)}
 GroovyConsoleBaseScript.metaClass.activeTrans = {spoon?.activeTransformation}
 GroovyConsoleBaseScript.metaClass.trans = { it ? spoon?.findTransformation(it) : spoon?.activeTransformation }
 GroovyConsoleBaseScript.metaClass.transGraph = {spoon?.activeTransGraph}
@@ -102,8 +107,7 @@ Spoon.metaClass.runJob = { jobMeta ->
 }
 
 Trans.metaClass.run = { args ->
-	if(!delegate.isReadyToStart()) delegate.prepareExecution(args)
-	delegate.startThreads();
+	delegate.execute(args)
 	delegate.waitUntilFinished();
 	delegate
 }
@@ -113,6 +117,19 @@ TransMeta.metaClass.run = { args ->
 	def trans = new Trans(delegate)
 	trans.run(args)
 	delegate
+}
+
+Job.metaClass.run = { args ->
+  delegate.execute(args)
+  delegate.waitUntilFinished();
+  delegate
+}
+
+JobMeta.metaClass.run = { args ->
+  
+  def job = new Job(delegate)
+  job.run(args)
+  delegate
 }
 
 
@@ -162,10 +179,12 @@ GroovyConsoleBaseScript.metaClass.createDatabase = {args ->
 GroovyConsoleBaseScript.metaClass.repo = {spoon.repository}
 GroovyConsoleBaseScript.metaClass.repofs = RepoHelper.instance
 Spoon.metaClass.repo = {delegate.repository}
+
+// Treat properties as steps/entries
 TransMeta.metaClass.propertyMissing << { name -> delegate.findStep(name) }
-TransMeta.metaClass.run = {runTrans(delegate)}
+TransMeta.metaClass.runTrans = {runTrans(delegate)}
 JobMeta.metaClass.propertyMissing << { name -> delegate.findJobEntry(name) }
-JobMeta.metaClass.run = {runJob(delegate)}
+JobMeta.metaClass.runJob = {runJob(delegate)}
 
 
 RepoHelper.metaClass.propertyMissing << { name ->
@@ -331,10 +350,8 @@ TransMeta.metaClass.plus = {x ->
 	}
 	else if(x instanceof String) {
 		// Try to resolve step plugin
-		if(plugins[x] && plugins[x] instanceof StepPluginType) {
-			delegate + x
-		}
-	}
+		delegate + plugins."$x".makeNew()
+  }
 	else if(x instanceof DatabaseMeta) {
 		delegate.addDatabase(x)
 		delegate
