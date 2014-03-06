@@ -41,7 +41,7 @@ public class GroovyConsoleMain {
 			// TODO - args
 			gcm.run();
 			// TODO - wait for closed event
-			while(true) {Thread.sleep(200);}
+			//while(true) {Thread.sleep(200);}
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);

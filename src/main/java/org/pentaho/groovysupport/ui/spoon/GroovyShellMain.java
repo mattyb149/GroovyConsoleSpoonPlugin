@@ -4,11 +4,13 @@ import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
@@ -66,20 +68,60 @@ public class GroovyShellMain {
 		
 		// Evaluate all groovy scripts in the JAR
 		String scriptName = "";
-		try {
-			JarFile jarFile = new JarFile(URLDecoder.decode(GroovyShellMain.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8"));
-			for(Enumeration<JarEntry> em = jarFile.entries(); em.hasMoreElements();) {  
-				scriptName = em.nextElement().toString();
-		        if(scriptName.endsWith(".groovy")) {
-		        	ZipEntry entry = jarFile.getEntry(scriptName);
-		        	InputStream inStream= jarFile.getInputStream(entry);
-		        	primingShell.evaluate(new InputStreamReader(inStream));
-		        }
-			}
-		} catch (IOException e) {
-			System.out.println("Error loading script: "+scriptName);
-		}		
-		
+		JarFile jarFile = null;
+		URL jarURL = GroovyShellMain.class.getProtectionDomain().getCodeSource().getLocation();
+		boolean isJar = true;
+		if(jarURL.getProtocol().equalsIgnoreCase( "file" )) {
+		  File checkDir = new File(jarURL.getFile());
+		  isJar = !checkDir.isDirectory();
+		}
+		if(isJar) {
+    		try {
+    		  jarFile = new JarFile(URLDecoder.decode(jarURL.getPath(), "UTF-8"));
+    			for(Enumeration<JarEntry> em = jarFile.entries(); em.hasMoreElements();) {  
+    			  JarEntry jarEntry = em.nextElement();
+    			  if(!jarEntry.isDirectory()) {
+    			    scriptName = jarEntry.toString();
+    		      if(scriptName.endsWith(".groovy")) {
+    		        	ZipEntry entry = jarFile.getEntry(scriptName);
+    		        	InputStream inStream= jarFile.getInputStream(entry);
+    		        	primingShell.evaluate(new InputStreamReader(inStream));
+    		      }
+    			  }
+    			}
+    		} catch (IOException e) {
+    			System.out.println("Error loading script: "+scriptName+", exception = "+e.getMessage());
+    		}	
+    		finally {
+    		  if(jarFile != null) {
+    		    try {
+              jarFile.close();
+            } catch ( IOException e ) {
+              e.printStackTrace();
+            }
+    		  }
+    		}		
+		}
+		else {
+		  // might be running right from the GroovyConsoleSpoonPlugin project, so use the resources dir
+		  File f = new File("src/main/resources");
+		  File[] scripts = f.listFiles( new FilenameFilter() {
+
+        @Override
+        public boolean accept( File dir, String name ) {
+          return name.endsWith( ".groovy" );
+        }
+		  });
+		  if(scripts != null) {
+		    for(File script : scripts) {
+		      try {
+            primingShell.evaluate(new InputStreamReader(new FileInputStream(script)));
+          } catch ( Exception e ) {
+            e.printStackTrace();
+          }
+		    }
+		  }
+		}
 		
 		// Load any staging scripts placed in the directory with the plugin
 		String[] scriptList = pluginFolder.list(new GroovyExtFilter());

@@ -1,0 +1,66 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+sourceCompatibility = JavaVersion.VERSION_1_6
+
+project.repositories {
+  ivy {
+    url "http://repo.pentaho.org/artifactory/repo/"
+    layout  "pattern", {
+      ivy "[organisation]/[module]/[revision]/[module]-[revision].ivy.xml"
+      artifact "[organisation]/[module]/[revision]/[module]-[revision].jar"
+      m2compatible = true
+    }
+  }
+  maven {
+    url 'http://repo.pentaho.org/artifactory/repo'
+  }
+  mavenCentral()
+  mavenLocal()
+}
+
+
+configurations {
+  runtimeWithoutCompile {
+    transitive = false
+  }
+}
+
+dependencies {
+  compile('pentaho-kettle:kettle-core:5.0+')
+  compile('pentaho-kettle:kettle-engine:5.0+')
+  compile('pentaho-kettle:kettle-ui-swt:5.0+')
+  compile('pentaho-kettle:kettle-core:5.0+')
+  compile('pentaho:metastore:5.0+')
+  runtime('org.codehaus.groovy:groovy:1.8.0')
+}
+
+
+task plugin(dependsOn:jar, type: Zip) {
+  into("${project.name}/") {
+    from jar.outputs.files
+  }
+  def compileDeps = configurations.compile.resolve()
+  def runtimeDeps = configurations.runtime.resolve()
+  def leftovers = (compileDeps + runtimeDeps) - compileDeps.intersect(runtimeDeps)
+  
+  into("${project.name}/lib") {
+    
+   from leftovers
+    //from configurations.runtimeWithoutCompile
+  }
+  
+}
+
+task(printClz, dependsOn: 'classes') {
+sourceSets.main.runtimeClasspath.each {logger.info(it.absolutePath)}
+}
+
+task(console, dependsOn: 'classes', type: JavaExec) {
+  main = 'org.pentaho.groovysupport.ui.spoon.GroovyConsoleMain'
+  classpath = sourceSets.main.runtimeClasspath
+}
+
+task createGradleWrapper(type: Wrapper) {
+  gradleVersion = '1.8'
+}
