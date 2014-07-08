@@ -1,4 +1,4 @@
-package org.pentaho.groovysupport.ui.spoon;
+package org.pentaho.groovy.ui.spoon;
 
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
@@ -55,9 +55,12 @@ public class GroovyShellMain {
       "org.pentaho.di.core.row",
       "org.pentaho.di.core.vfs",
       "org.pentaho.di.core.exception",
-      "org.pentaho.groovysupport.ui.spoon",
-      "org.pentaho.groovysupport.ui.spoon.repo",
-      "org.pentaho.groovysupport.script"
+      "org.pentaho.groovy.ui.spoon",
+      "org.pentaho.groovy.ui.spoon.repo",
+      "org.pentaho.groovy.script",
+      "import com.tinkerpop.gremlin.Tokens.T",
+      "import com.tinkerpop.gremlin.groovy.*",
+      "import groovy.grape.Grape"
 		);
 		CompilerConfiguration cc = new CompilerConfiguration();
 		cc.addCompilationCustomizers(ic);
@@ -155,14 +158,6 @@ public class GroovyShellMain {
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);
-		}
-	}
-	
-	// Groovy file extension filter
-	public static class GroovyExtFilter implements FilenameFilter {
- 
-		public boolean accept(File dir, String name) {
-			return (name.endsWith(".groovy"));
 		}
 	}
 }

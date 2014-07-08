@@ -1,4 +1,4 @@
-package org.pentaho.groovysupport.ui.spoon.repo;
+package org.pentaho.groovy.ui.spoon.repo;
 
 import java.io.File;
 

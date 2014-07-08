@@ -1,4 +1,4 @@
-package org.pentaho.groovysupport.ui.spoon;
+package org.pentaho.groovy.ui.spoon;
 
 import groovy.lang.Binding;
 import groovy.lang.GString;

@@ -1,4 +1,4 @@
-package org.pentaho.groovysupport.ui.spoon;
+package org.pentaho.groovy.ui.spoon;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -58,7 +58,7 @@ public class GroovyConsoleSpoonPlugin extends AbstractXulEventHandler implements
 	  ClassLoader cl = getClass().getClassLoader();
 		container.registerClassLoader(cl);
 	  if(category.equals("spoon")){
-	    container.loadOverlay("org/pentaho/groovysupport/ui/spoon/spoon_overlays.xul", bundle);
+	    container.loadOverlay("org/pentaho/groovy/ui/spoon/spoon_overlays.xul", bundle);
 	    container.addEventHandler(this);
 	  }
 	  // force linking of console
