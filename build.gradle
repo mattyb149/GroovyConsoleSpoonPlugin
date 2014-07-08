@@ -3,9 +3,11 @@ apply plugin: 'eclipse'
 
 sourceCompatibility = JavaVersion.VERSION_1_6
 
+final String EXTERNAL_PENTAHO_REPO_URL = 'http://nexus.pentaho.org/content/groups/omni'
+
 project.repositories {
   ivy {
-    url "http://repo.pentaho.org/artifactory/repo/"
+    url EXTERNAL_PENTAHO_REPO_URL
     layout  "pattern", {
       ivy "[organisation]/[module]/[revision]/[module]-[revision].ivy.xml"
       artifact "[organisation]/[module]/[revision]/[module]-[revision].jar"
@@ -13,7 +15,7 @@ project.repositories {
     }
   }
   maven {
-    url 'http://repo.pentaho.org/artifactory/repo'
+    url EXTERNAL_PENTAHO_REPO_URL
   }
   mavenCentral()
   mavenLocal()
@@ -27,14 +29,24 @@ configurations {
 }
 
 dependencies {
-  compile('pentaho-kettle:kettle-core:5.0+')
-  compile('pentaho-kettle:kettle-engine:5.0+')
-  compile('pentaho-kettle:kettle-ui-swt:5.0+')
-  compile('pentaho-kettle:kettle-core:5.0+')
-  compile('pentaho:metastore:5.0+')
-  runtime('org.codehaus.groovy:groovy:1.8.0')
-}
+  compile 'pentaho-kettle:kettle-core:5.1+'
+  compile 'pentaho-kettle:kettle-engine:5.1+'
+  compile ('pentaho-kettle:kettle-ui-swt:5.1+') {
+    exclude module:'jface'
+  }
+  compile 'org.eclipse:jface:3.3.0+'
+  compile 'pentaho:metastore:5.1+'
+  
 
+  java.lang.System.getProperty("deps", "").split(",").each { dep ->
+      dep = dep.trim()
+      if (dep.length() > 0) {
+        compile "${dep}"
+      }
+    }
+    compile 'com.tinkerpop.gremlin:gremlin-groovy:2.5+'
+    runtimeWithoutCompile 'com.tinkerpop.gremlin:gremlin-groovy:2.5+'
+}
 
 task plugin(dependsOn:jar, type: Zip) {
   into("${project.name}/") {
@@ -53,12 +65,29 @@ task plugin(dependsOn:jar, type: Zip) {
 }
 
 task(printClz, dependsOn: 'classes') {
-sourceSets.main.runtimeClasspath.each {logger.info(it.absolutePath)}
+  sourceSets.main.runtimeClasspath.each {logger.info(it.absolutePath)}
 }
 
 task(console, dependsOn: 'classes', type: JavaExec) {
-  main = 'org.pentaho.groovysupport.ui.spoon.GroovyConsoleMain'
+  main = 'org.pentaho.groovy.ui.spoon.GroovyConsoleMain'
   classpath = sourceSets.main.runtimeClasspath
+}
+
+task(gremlin, dependsOn: 'classes') << {
+    
+    def classpath = sourceSets.main.runtimeClasspath
+    def command = [
+        System.getProperty('JAVA_HOME') ? "${System.getProperty('JAVA_HOME')/bin/java}" : 'java',
+        '-cp', classpath.collect().join(':'),
+        'org.pentaho.gremlin.console.GremlinGroovyConsoleMain',
+        //'src/main/resources/staging.groovy'
+        ]
+    def proc = new ProcessBuilder(command)
+        .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+        .redirectInput(ProcessBuilder.Redirect.INHERIT)
+        .redirectError(ProcessBuilder.Redirect.INHERIT)
+        .start()
+    proc.waitFor()
 }
 
 task createGradleWrapper(type: Wrapper) {

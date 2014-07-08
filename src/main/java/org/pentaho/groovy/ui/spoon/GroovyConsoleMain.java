@@ -1,4 +1,4 @@
-package org.pentaho.groovysupport.ui.spoon;
+package org.pentaho.groovy.ui.spoon;
 
 import java.io.File;
 import java.lang.reflect.Method;

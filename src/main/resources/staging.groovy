@@ -1,5 +1,3 @@
-package org.pentaho.groovysupport.script 
-
 import org.pentaho.di.cluster.*
 import org.pentaho.di.core.*
 import org.pentaho.di.core.database.*
@@ -17,8 +15,8 @@ import org.pentaho.di.ui.spoon.*
 import org.pentaho.di.ui.spoon.delegates.*
 import org.pentaho.di.ui.spoon.trans.*
 import org.pentaho.vfs.ui.*
-import org.pentaho.groovysupport.ui.spoon.*
-import org.pentaho.groovysupport.ui.spoon.repo.*
+import org.pentaho.groovy.ui.spoon.*
+import org.pentaho.groovy.ui.spoon.repo.*
 
 // Groovyize PDI classes, add helper methods, etc.
 
